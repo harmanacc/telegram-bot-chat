@@ -1,19 +1,19 @@
-package main 
+package main
 
 import (
-    "io"
-    "net/http"
-    "fmt"
-    "bufio"
-    "bytes"
-    "os"
-    "log"
-    "os/signal"
-    "os/exec"
-    "syscall"
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
 
-    tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 )
 
 
@@ -23,8 +23,18 @@ var (
 )
 
 func main() {
-    var err error 
-    bot, err = tgbotapi.NewBotAPI("YOUR_BOT_TOKEN")
+
+    err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+    token := os.Getenv("TELEGRAM_BOT_TOKEN")
+    if token == "" {
+		log.Fatal("TELEGRAM_TOKEN must be set in .env")
+	}
+
+    bot, err = tgbotapi.NewBotAPI(token)
     if err != nil {
         log.Panic(err)
     }
@@ -116,7 +126,7 @@ func handleReceivedImage(message *tgbotapi.Message) {
 
 
 
-func handleImageSend() {
+func handleImageSend(caption string) {
     imgPath, err := getClipboardImage()
     if err != nil {
         log.Printf("Error getting image: %v", err)
@@ -132,7 +142,9 @@ func handleImageSend() {
 
     // Send photo with caption
     photo := tgbotapi.NewPhoto(homeChatID, tgbotapi.FilePath(imgPath))
-    // photo.Caption = "Image from computer"
+    if caption != "" {
+    photo.Caption = caption
+    }
     _, err = bot.Send(photo)
     if err != nil {
         log.Printf("Error sending photo: %v", err)
@@ -149,7 +161,11 @@ func handleUserInput() {
 		text := scanner.Text()
 		
 		if text == "/image" {
-			handleImageSend()
+            fmt.Print("Enter caption: (Enter to skip) ")
+            scanner.Scan()
+            caption := scanner.Text()
+            
+			handleImageSend(caption)
 		} else if text != "" {
 			sendMessage(text, homeChatID)
 		}
