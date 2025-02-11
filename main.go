@@ -14,12 +14,21 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 )
 
 
 var (
     bot       *tgbotapi.BotAPI
     homeChatID int64
+    input     *widget.Entry
+    output    *widget.RichText
+    caption   *widget.Entry
+    sendButton *widget.Button
 )
 
 func main() {
@@ -52,7 +61,82 @@ func main() {
 
     go listenForTelegramUpdates()
 
-    handleUserInput()
+    // handleUserInput()
+
+    // Initialize Fyne app
+    a := app.New()
+    w := a.NewWindow("Telegram Bot GUI")
+
+    // // Create GUI components
+    // input = widget.NewMultiLineEntry()
+    // input.SetPlaceHolder("Type a message...")
+    // input.Resize(fyne.NewSize(400, 60))
+
+    output = widget.NewRichTextWithText("")
+    output.Resize(fyne.NewSize(400, 300))
+
+  
+
+    input = widget.NewMultiLineEntry()  // Assign to global variable
+    input.SetPlaceHolder("Type a message...")
+    input.Resize(fyne.NewSize(400, 60))
+    
+
+    sendButton := widget.NewButton("Send", func() {
+        text := input.Text
+        if text != "" {
+            sendMessage(text, homeChatID)
+            output.AppendMarkdown(fmt.Sprintf("**You:** %s\n", text))
+            input.SetText("")
+        }
+    })
+
+    messageContainer := container.NewBorder(
+        nil, nil, nil, sendButton,  // top, bottom, left, right
+        input,
+    )
+
+    caption := widget.NewEntry()
+    caption.SetPlaceHolder("Image caption (optional)")
+
+    
+
+    // New image button
+    imageButton := widget.NewButton("Send Image", func() {
+        handleImageSend(caption.Text)
+        caption.SetText("")
+    })
+
+        imageContainer := container.NewBorder(
+        nil, nil, nil, imageButton,
+        caption,
+    )
+    // Main content layout
+    content := container.NewVBox(
+        // Chat history section
+        widget.NewCard(
+            "Chat History",  // title
+            "",             // subtitle
+            container.NewPadded(output),
+        ),
+        
+        // Inputs section
+        container.NewVBox(
+            // Message area
+            container.NewPadded(messageContainer),
+            
+            // Image area
+            container.NewPadded(imageContainer),
+        ),
+    )
+
+    // Add padding to the whole window
+    paddedContent := container.NewPadded(content)
+
+
+    w.SetContent(paddedContent)
+    w.Resize(fyne.NewSize(800, 600)) 
+    w.ShowAndRun()
 }
 
 func listenForTelegramUpdates() {
@@ -76,12 +160,14 @@ func listenForTelegramUpdates() {
         // Handle incoming photos
         if len(update.Message.Photo) > 0 {
             handleReceivedImage(update.Message)
+            output.AppendMarkdown(fmt.Sprintf("**Received Image** from %s\n", update.Message.From.UserName))
             continue
         }
 
         // Print received message to console
         if update.Message.Text != "" {
             fmt.Printf("\nHome Account: %s\n> ", update.Message.Text)
+            output.AppendMarkdown(fmt.Sprintf("**%s:** %s\n", update.Message.From.UserName, update.Message.Text))
         }
     }
 }

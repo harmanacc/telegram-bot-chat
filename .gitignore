@@ -18,6 +18,9 @@
 # Go workspace file
 go.work
 
+# Ignore all images
+*.jpg
+
 # Test binary, built with `go test -c`
 *.test
 
