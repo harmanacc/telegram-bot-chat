@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -20,7 +21,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
-
 
 var (
     bot       *tgbotapi.BotAPI
@@ -84,6 +84,16 @@ func main() {
 
     sendButton := widget.NewButton("Send", func() {
         text := input.Text
+        if homeChatID == 0 {
+            chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
+            if chatIDStr != "" {
+                var err error
+                homeChatID, err = strconv.ParseInt(chatIDStr, 10, 64)
+                if err != nil {
+                    log.Printf("Error parsing TELEGRAM_CHAT_ID: %v", err)
+                }
+            }
+        }
         if text != "" {
             sendMessage(text, homeChatID)
             output.AppendMarkdown(fmt.Sprintf("**You:** %s\n", text))
